@@ -33,7 +33,10 @@ func getLists() ([]string, error) {
 	return append([]string{"All"}, lists...), nil
 }
 
-func Operation(title string, operation func(string) error) tea.Cmd {
+// Operation runs an operation that returns a tea.Cmd. This allows callers to
+// either perform synchronous work (wrap an error-returning function) or to
+// return a command that requests input from the terminal UI.
+func Operation(title string, operation func(string) tea.Cmd) tea.Cmd {
 	lists, err := getLists()
 	if err != nil {
 		return func() tea.Msg {
@@ -55,12 +58,21 @@ func Operation(title string, operation func(string) error) tea.Cmd {
 					}
 
 					file := fmt.Sprintf("%sLists/%s", h.GetCurrentDir(), list)
-					if err := operation(file); err != nil {
-						output = append(output, fmt.Sprintf("%s: failed: %v", list, err))
+					cmd := operation(file)
+					if cmd == nil {
+						output = append(output, fmt.Sprintf("%s: skipped", list))
 						continue
 					}
 
-					output = append(output, fmt.Sprintf("%s: done", list))
+					// Execute the returned command synchronously and gather result
+					msg := cmd()
+					switch m := msg.(type) {
+					case t.OutputLine:
+						// Use the message as-is if it contains informative text
+						output = append(output, fmt.Sprintf("%s: %s", list, m.Line))
+					default:
+						output = append(output, fmt.Sprintf("%s: done", list))
+					}
 				}
 
 				if len(output) == 0 {
@@ -81,11 +93,11 @@ func Operation(title string, operation func(string) error) tea.Cmd {
 			}
 
 			return func() tea.Msg {
-				if err := operation(file); err != nil {
-					return t.OutputLine{Line: err.Error()}
+				cmd := operation(file)
+				if cmd == nil {
+					return t.OutputLine{Line: selected + ": skipped"}
 				}
-
-				return t.OutputLine{Line: selected + ": done"}
+				return cmd()
 			}
 		}
 	})

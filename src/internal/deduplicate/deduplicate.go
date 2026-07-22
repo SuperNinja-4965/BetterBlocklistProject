@@ -2,10 +2,12 @@ package deduplicate
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
+
+	"better-blocklist/src/internal/compression"
 )
 
 type Record struct {
@@ -20,11 +22,12 @@ type Record struct {
 // - Removing duplicate entries.
 // - Moving comments from removed duplicates into a section at the top.
 func SortFile(path string) error {
-	f, err := os.Open(path)
+
+	// Read file (decompress if gzip).
+	raw, err := compression.ReadMaybeGzip(path)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	var (
 		header          []string
@@ -33,7 +36,7 @@ func SortFile(path string) error {
 		atTop           = true
 	)
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(bytes.NewReader(raw))
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -95,43 +98,37 @@ func SortFile(path string) error {
 		return strings.ToLower(unique[i].Line) < strings.ToLower(unique[j].Line)
 	})
 
-	out, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	w := bufio.NewWriter(out)
-
+	var buf bytes.Buffer
 	// Original header.
 	for _, line := range header {
-		fmt.Fprintln(w, line)
+		fmt.Fprintln(&buf, line)
 	}
 
 	// Duplicate comment section.
 	if len(duplicateComments) > 0 {
 		if len(header) > 0 {
-			fmt.Fprintln(w)
+			fmt.Fprintln(&buf)
 		}
 
-		fmt.Fprintln(w, "# Comments from removed duplicate entries")
+		fmt.Fprintln(&buf, "# Comments from removed duplicate entries")
 		for _, line := range duplicateComments {
-			fmt.Fprintln(w, line)
+			fmt.Fprintln(&buf, line)
 		}
-		fmt.Fprintln(w)
+		fmt.Fprintln(&buf)
 	}
 
 	// Sorted unique entries.
 	for i, r := range unique {
 		if i > 0 && len(r.Comments) > 0 {
-			fmt.Fprintln(w)
+			fmt.Fprintln(&buf)
 		}
 
 		for _, c := range r.Comments {
-			fmt.Fprintln(w, c)
+			fmt.Fprintln(&buf, c)
 		}
-		fmt.Fprintln(w, r.Line)
+		fmt.Fprintln(&buf, r.Line)
 	}
 
-	return w.Flush()
+	// Write compressed output.
+	return compression.WriteGzipFile(path, buf.Bytes())
 }
