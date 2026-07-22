@@ -14,6 +14,8 @@ var choices = []string{
 	"De-duplicate list",
 	"Add to list",
 	"Remove from list",
+	"Process GitHub issue",
+	"Process GitHub repo issues",
 }
 
 func main() {
@@ -35,6 +37,12 @@ func getCommandForChoice(choice string) tea.Cmd {
 
 	case "Remove from list":
 		return manage.RemoveMenu()
+
+	case "Process GitHub issue":
+		return manage.GitHubIssueMenu()
+
+	case "Process GitHub repo issues":
+		return manage.GitHubIssuesMenu()
 
 	default:
 		return func() tea.Msg {

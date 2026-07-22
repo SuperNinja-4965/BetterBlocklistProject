@@ -14,7 +14,7 @@ func (m model) inputView() string {
 	// Use bubbles textinput for a polished input control
 	ti := textinput.New()
 	ti.Prompt = "Input: "
-	ti.CharLimit = 18 // Set character limit to 18
+	ti.CharLimit = 100 // Set character limit to 100
 	ti.Placeholder = ""
 	ti.SetValue(m.inputValue)
 	ti.SetCursor(m.inputCursor)
