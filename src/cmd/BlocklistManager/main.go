@@ -2,6 +2,7 @@ package main
 
 import (
 	"better-blocklist/src/internal/deduplicate"
+	"better-blocklist/src/internal/manage"
 	t "better-blocklist/src/internal/terminal"
 	"fmt"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 var choices = []string{
 	"De-duplicate list",
+	"Add to list",
+	"Remove from list",
 }
 
 func main() {
@@ -26,6 +29,12 @@ func getCommandForChoice(choice string) tea.Cmd {
 	switch choice {
 	case "De-duplicate list":
 		return deduplicate.Menu()
+
+	case "Add to list":
+		return manage.AddMenu()
+
+	case "Remove from list":
+		return manage.RemoveMenu()
 
 	default:
 		return func() tea.Msg {
