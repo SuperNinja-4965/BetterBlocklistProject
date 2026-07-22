@@ -39,6 +39,10 @@ jobs:
         run: |
           find Lists -type f -name "*.gz" -exec gunzip {} \;
 
+      - name: Add 404
+        run: |
+          cp 404.html Lists/404.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
