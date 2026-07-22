@@ -34,8 +34,12 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
-      - name: Upload artifact
 
+      - name: Decompress Lists
+        run: |
+          find Lists -type f -name "*.gz" -exec gunzip {} \;
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
           # Upload entire repository
